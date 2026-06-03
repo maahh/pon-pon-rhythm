@@ -1,0 +1,163 @@
+/* ぽんぽんリズム スタイル */
+:root {
+  --bg: #1a1a2e;
+  --bg2: #23234a;
+  --accent: #e94560;
+  --yellow: #f7c948;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg);
+  font-family: "ヒラギノ角ゴシック", "Hiragino Sans", sans-serif;
+  /* 3歳児向け：選択・長押し・ダブルタップ拡大を無効化 */
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  touch-action: manipulation;
+  overscroll-behavior: none;
+}
+
+#app {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.screen {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle at 50% 40%, var(--bg2), var(--bg));
+}
+.hidden { display: none; }
+
+/* === スタート画面 === */
+.title-crab {
+  font-size: 22vmin;
+  animation: idle-bounce 1.2s ease-in-out infinite;
+}
+.title {
+  color: #fff;
+  font-size: 8vmin;
+  margin: 1vmin 0 4vmin;
+  letter-spacing: 0.05em;
+}
+.start-btn {
+  width: 22vmin;
+  height: 22vmin;
+  border: none;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  font-size: 9vmin;
+  padding-left: 1.5vmin;
+  box-shadow: 0 1vmin 0 #b32f45, 0 0 6vmin rgba(233,69,96,0.6);
+  cursor: pointer;
+  animation: pulse 1.4s ease-in-out infinite;
+}
+.start-btn:active { transform: translateY(0.6vmin); box-shadow: 0 0.4vmin 0 #b32f45; }
+.hint {
+  color: #cfd0e0;
+  font-size: 4vmin;
+  margin-top: 5vmin;
+}
+
+/* === ゲーム画面 === */
+.stage {
+  position: relative;
+  width: 60vmin;
+  height: 60vmin;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.crab {
+  font-size: 36vmin;
+  line-height: 1;
+  filter: drop-shadow(0 1vmin 1.2vmin rgba(0,0,0,0.4));
+  transition: transform 0.08s ease-out;
+  will-change: transform;
+}
+.crab.bounce { animation: hop 0.28s ease-out; }
+.crab.happy { animation: happy 0.45s ease-out; }
+
+.ring {
+  position: absolute;
+  width: 36vmin;
+  height: 36vmin;
+  border: 1.4vmin solid var(--yellow);
+  border-radius: 50%;
+  opacity: 0.85;
+  pointer-events: none;
+  will-change: transform, opacity;
+}
+.ring.flash { border-color: #fff; }
+
+/* 上部にたまる星 */
+.stars {
+  position: absolute;
+  top: 2vmin;
+  left: 0;
+  right: 0;
+  min-height: 9vmin;
+  display: flex;
+  flex-wrap: wrap;
+  align-content: flex-start;
+  justify-content: center;
+  gap: 0.4vmin;
+  padding: 0 4vmin;
+  pointer-events: none;
+}
+.stars .star {
+  font-size: 6vmin;
+  animation: star-pop 0.4s ease-out;
+}
+
+/* エフェクト層（星・紙吹雪） */
+.fx {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+.fx .burst {
+  position: absolute;
+  font-size: 7vmin;
+  will-change: transform, opacity;
+}
+
+/* === アニメーション === */
+@keyframes idle-bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3vmin); }
+}
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.08); }
+}
+@keyframes hop {
+  0% { transform: translateY(0) scale(1); }
+  40% { transform: translateY(-8vmin) scale(1.05, 0.95); }
+  100% { transform: translateY(0) scale(1); }
+}
+@keyframes happy {
+  0% { transform: translateY(0) rotate(0); }
+  25% { transform: translateY(-10vmin) rotate(-8deg) scale(1.1); }
+  60% { transform: translateY(0) rotate(8deg) scale(1.05); }
+  100% { transform: translateY(0) rotate(0) scale(1); }
+}
+@keyframes star-pop {
+  0% { transform: scale(0); }
+  70% { transform: scale(1.3); }
+  100% { transform: scale(1); }
+}
