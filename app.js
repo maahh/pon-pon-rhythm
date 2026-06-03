@@ -12,13 +12,34 @@ const LOOKAHEAD_MS = 25;     // スケジューラの起動間隔
 // C メジャーペンタトニック（外れた音にならないので連打しても気持ちいい）
 const PENTATONIC = [523.25, 587.33, 659.25, 783.99, 880.0, 1046.5];
 
+// BGM の短いループメロディ（C メジャーペンタトニックだけで作る）
+const MUSIC_PHRASE = [
+  { freq: PENTATONIC[0], beats: 1 },
+  { freq: PENTATONIC[1], beats: 1 },
+  { freq: PENTATONIC[2], beats: 1 },
+  { freq: PENTATONIC[4], beats: 1 },
+  { freq: PENTATONIC[2], beats: 1 },
+  { freq: PENTATONIC[1], beats: 1 },
+  { freq: PENTATONIC[0], beats: 2 },
+  { freq: PENTATONIC[2], beats: 1 },
+  { freq: PENTATONIC[4], beats: 1 },
+  { freq: PENTATONIC[5], beats: 1 },
+  { freq: PENTATONIC[4], beats: 1 },
+  { freq: PENTATONIC[2], beats: 1 },
+  { freq: PENTATONIC[1], beats: 1 },
+  { freq: PENTATONIC[0], beats: 2 },
+];
+
 // === 状態 ===
 let audioCtx = null;
 let masterGain = null;
+let musicGain = null;
 let isPlaying = false;
 let bpm = BPM_START;
 let secondsPerBeat = 60 / bpm;
 let nextNoteTime = 0;
+let musicTime = 0;
+let musicIndex = 0;
 let schedulerId = null;
 let scheduledBeats = [];     // {time, bounced} 拍の予定時刻
 let successCount = 0;        // 累計成功数
@@ -47,6 +68,32 @@ function tone(freq, start, dur, type = "sine", peak = 0.3) {
   g.gain.exponentialRampToValueAtTime(0.0001, start + dur);
   o.start(start);
   o.stop(start + dur + 0.02);
+}
+
+// BGM 用のやわらかいベル音。拍音を邪魔しないよう musicGain にだけ送る
+function musicNote(freq, start, durSec) {
+  const o = audioCtx.createOscillator();
+  const h = audioCtx.createOscillator();
+  const g = audioCtx.createGain();
+  const hg = audioCtx.createGain();
+  o.type = "triangle";
+  h.type = "sine";
+  o.frequency.value = freq;
+  h.frequency.value = freq * 2;
+  o.connect(g);
+  h.connect(hg);
+  g.connect(musicGain);
+  hg.connect(musicGain);
+  g.gain.setValueAtTime(0.0001, start);
+  hg.gain.setValueAtTime(0.0001, start);
+  g.gain.exponentialRampToValueAtTime(0.5, start + 0.015);
+  hg.gain.exponentialRampToValueAtTime(0.08, start + 0.015);
+  g.gain.exponentialRampToValueAtTime(0.0001, start + durSec);
+  hg.gain.exponentialRampToValueAtTime(0.0001, start + durSec);
+  o.start(start);
+  h.start(start);
+  o.stop(start + durSec + 0.03);
+  h.stop(start + durSec + 0.03);
 }
 
 // 拍の音（やわらかいウッドブロック風）
@@ -78,6 +125,13 @@ function scheduler() {
     playBeat(nextNoteTime);
     scheduledBeats.push({ time: nextNoteTime, bounced: false });
     nextNoteTime += secondsPerBeat;
+  }
+  while (musicTime < audioCtx.currentTime + SCHEDULE_AHEAD) {
+    const note = MUSIC_PHRASE[musicIndex];
+    const durSec = note.beats * secondsPerBeat;
+    musicNote(note.freq, musicTime, durSec * 0.88);
+    musicTime += durSec;
+    musicIndex = (musicIndex + 1) % MUSIC_PHRASE.length;
   }
 }
 
@@ -222,6 +276,9 @@ function startGame() {
   masterGain = audioCtx.createGain();
   masterGain.gain.value = 0.6;
   masterGain.connect(audioCtx.destination);
+  musicGain = audioCtx.createGain();
+  musicGain.gain.value = 0.17;
+  musicGain.connect(masterGain);
   // iOS対策：ユーザー操作の中でresume
   if (audioCtx.state === "suspended") audioCtx.resume();
 
@@ -232,6 +289,8 @@ function startGame() {
   combo = 0;
   scheduledBeats = [];
   nextNoteTime = audioCtx.currentTime + 0.2;
+  musicIndex = 0;
+  musicTime = nextNoteTime;
 
   startScreen.classList.add("hidden");
   gameScreen.classList.remove("hidden");
