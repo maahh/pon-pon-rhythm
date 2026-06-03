@@ -1,9 +1,12 @@
 /* ぽんぽんリズム スタイル */
 :root {
-  --bg: #1a1a2e;
-  --bg2: #23234a;
-  --accent: #e94560;
-  --yellow: #f7c948;
+  --bg: #071a3a;
+  --bg2: #0c6f80;
+  --accent: #ff5f74;
+  --yellow: #ffd766;
+  --sand: #e8c06f;
+  --seaweed: #3fbf78;
+  --level-hue: 0deg;
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -22,6 +25,8 @@ html, body {
   overscroll-behavior: none;
 }
 
+body.level-shift .screen { animation: screen-hue 1.5s ease-out; }
+
 #app {
   position: fixed;
   inset: 0;
@@ -37,79 +42,250 @@ html, body {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: radial-gradient(circle at 50% 40%, var(--bg2), var(--bg));
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 50% 18%, rgba(118, 221, 242, 0.22), transparent 32%),
+    linear-gradient(180deg, #051332 0%, #0b4572 44%, #087d82 100%);
+  filter: hue-rotate(var(--level-hue));
+  isolation: isolate;
 }
 .hidden { display: none; }
 
+.ocean {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: -1;
+}
+.ocean::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 16% 20%, rgba(255,255,255,0.16), transparent 12%),
+    radial-gradient(circle at 78% 12%, rgba(149,241,255,0.14), transparent 14%);
+  opacity: 0.9;
+}
+.sand {
+  position: absolute;
+  left: -6%;
+  right: -6%;
+  bottom: -7vmin;
+  height: 23vmin;
+  border-radius: 50% 50% 0 0;
+  background:
+    radial-gradient(circle at 18% 28%, rgba(255,255,255,0.32) 0 0.9vmin, transparent 1vmin),
+    radial-gradient(circle at 48% 22%, rgba(255,255,255,0.25) 0 0.7vmin, transparent 0.8vmin),
+    radial-gradient(circle at 78% 35%, rgba(255,255,255,0.24) 0 0.8vmin, transparent 0.9vmin),
+    linear-gradient(180deg, #f0ce7c, var(--sand));
+}
+.bubble {
+  position: absolute;
+  bottom: -12vmin;
+  width: 4vmin;
+  height: 4vmin;
+  border: 0.45vmin solid rgba(210, 252, 255, 0.75);
+  border-radius: 50%;
+  opacity: 0;
+  transform: translate3d(0, 0, 0);
+  animation: bubble-rise 8s linear infinite;
+  will-change: transform, opacity;
+}
+.bubble::after {
+  content: "";
+  position: absolute;
+  top: 20%;
+  left: 22%;
+  width: 28%;
+  height: 28%;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.72);
+}
+.b1 { left: 8%; width: 3vmin; height: 3vmin; animation-duration: 7.5s; }
+.b2 { left: 24%; animation-delay: -2s; animation-duration: 9s; }
+.b3 { left: 52%; width: 2.6vmin; height: 2.6vmin; animation-delay: -4s; animation-duration: 6.8s; }
+.b4 { left: 70%; width: 5vmin; height: 5vmin; animation-delay: -1s; animation-duration: 10s; }
+.b5 { left: 86%; width: 3.5vmin; height: 3.5vmin; animation-delay: -5s; animation-duration: 8.5s; }
+.b6 { left: 39%; width: 4.5vmin; height: 4.5vmin; animation-delay: -6s; animation-duration: 11s; }
+
+.seaweed {
+  position: absolute;
+  bottom: 7vmin;
+  width: 4.2vmin;
+  height: 25vmin;
+  border-radius: 100% 20% 100% 20%;
+  background: linear-gradient(90deg, #1f8e5d, var(--seaweed));
+  transform-origin: 50% 100%;
+  animation: sway 3.2s ease-in-out infinite;
+  will-change: transform;
+}
+.seaweed::before,
+.seaweed::after {
+  content: "";
+  position: absolute;
+  bottom: 2vmin;
+  width: 3.2vmin;
+  height: 16vmin;
+  border-radius: 100% 20% 100% 20%;
+  background: linear-gradient(90deg, #2aa96d, #52d28a);
+  transform-origin: 50% 100%;
+}
+.seaweed::before { left: -2.5vmin; transform: rotate(-24deg); }
+.seaweed::after { right: -2.2vmin; transform: rotate(20deg); }
+.w1 { left: 7%; height: 23vmin; animation-delay: -1.1s; }
+.w2 { right: 9%; height: 29vmin; animation-duration: 3.9s; }
+.w3 { left: 78%; height: 18vmin; animation-delay: -2s; animation-duration: 2.9s; }
+
 /* === スタート画面 === */
 .title-crab {
+  position: relative;
+  z-index: 1;
   font-size: 22vmin;
-  animation: idle-bounce 1.2s ease-in-out infinite;
+  filter: drop-shadow(0 1vmin 1.2vmin rgba(0,0,0,0.35));
+  animation: idle-float 1.4s ease-in-out infinite;
 }
 .title {
+  position: relative;
+  z-index: 1;
   color: #fff;
   font-size: 8vmin;
   margin: 1vmin 0 4vmin;
-  letter-spacing: 0.05em;
+  letter-spacing: 0;
+  text-shadow: 0 0.7vmin 1.4vmin rgba(0,0,0,0.36);
 }
 .start-btn {
+  position: relative;
+  z-index: 1;
   width: 22vmin;
   height: 22vmin;
   border: none;
   border-radius: 50%;
-  background: var(--accent);
+  background: linear-gradient(180deg, #ff7b87, var(--accent));
   color: #fff;
   font-size: 9vmin;
   padding-left: 1.5vmin;
-  box-shadow: 0 1vmin 0 #b32f45, 0 0 6vmin rgba(233,69,96,0.6);
+  box-shadow: 0 1vmin 0 #b9364c, 0 0 6vmin rgba(255,126,139,0.55);
   cursor: pointer;
   animation: pulse 1.4s ease-in-out infinite;
+  -webkit-tap-highlight-color: transparent;
 }
-.start-btn:active { transform: translateY(0.6vmin); box-shadow: 0 0.4vmin 0 #b32f45; }
+.start-btn:active {
+  transform: translateY(0.6vmin);
+  box-shadow: 0 0.4vmin 0 #b9364c;
+}
 .hint {
-  color: #cfd0e0;
-  font-size: 4vmin;
+  position: relative;
+  z-index: 1;
+  color: #e7fbff;
+  font-size: clamp(18px, 4vmin, 34px);
   margin-top: 5vmin;
+  padding: 0 6vmin;
+  text-align: center;
+  text-shadow: 0 0.45vmin 0.8vmin rgba(0,0,0,0.35);
 }
 
 /* === ゲーム画面 === */
 .stage {
   position: relative;
-  width: 60vmin;
-  height: 60vmin;
+  width: min(76vmin, 620px);
+  height: min(76vmin, 620px);
   display: flex;
   align-items: center;
   justify-content: center;
+  z-index: 1;
+  transform: translateY(4vmin);
 }
 .crab {
-  font-size: 36vmin;
+  position: relative;
+  z-index: 3;
+  font-size: min(42vmin, 330px);
   line-height: 1;
-  filter: drop-shadow(0 1vmin 1.2vmin rgba(0,0,0,0.4));
-  transition: transform 0.08s ease-out;
+  filter: drop-shadow(0 1vmin 1.2vmin rgba(0,0,0,0.36));
+  transform-origin: 50% 82%;
+  animation: crab-float 1.6s ease-in-out infinite;
   will-change: transform;
 }
-.crab.bounce { animation: hop 0.28s ease-out; }
-.crab.happy { animation: happy 0.45s ease-out; }
+.crab.bounce { animation: beat-squash 0.3s ease-out, crab-float 1.6s ease-in-out infinite 0.3s; }
+.crab.happy { animation: happy 0.58s cubic-bezier(.2,.85,.25,1); }
+
+.crab-shadow {
+  position: absolute;
+  z-index: 1;
+  bottom: 15vmin;
+  width: 36vmin;
+  height: 6vmin;
+  border-radius: 50%;
+  background: rgba(2, 24, 36, 0.35);
+  filter: blur(0.8vmin);
+  transform: scale(1);
+  animation: shadow-float 1.6s ease-in-out infinite;
+  will-change: transform, opacity;
+}
+.crab-shadow.bounce {
+  animation: shadow-beat 0.3s ease-out, shadow-float 1.6s ease-in-out infinite 0.3s;
+}
+.crab-shadow.happy {
+  animation: shadow-happy 0.58s cubic-bezier(.2,.85,.25,1);
+}
 
 .ring {
   position: absolute;
-  width: 36vmin;
-  height: 36vmin;
-  border: 1.4vmin solid var(--yellow);
+  z-index: 2;
+  width: 40vmin;
+  height: 40vmin;
+  border: 1.1vmin solid rgba(255, 215, 102, 0.82);
   border-radius: 50%;
   opacity: 0.85;
   pointer-events: none;
+  box-shadow: 0 0 2.8vmin rgba(255, 224, 122, 0.38), inset 0 0 2.8vmin rgba(255,255,255,0.18);
   will-change: transform, opacity;
 }
-.ring.flash { border-color: #fff; }
+.ring.flash {
+  border-color: #fff;
+  box-shadow: 0 0 6vmin rgba(255,255,255,0.8), inset 0 0 5vmin rgba(255,255,255,0.28);
+}
+
+.cue-lights {
+  position: absolute;
+  z-index: 4;
+  inset: 0;
+  pointer-events: none;
+}
+.cue-light {
+  position: absolute;
+  width: 8vmin;
+  height: 8vmin;
+  border-radius: 50%;
+  background: rgba(173, 246, 255, 0.18);
+  border: 0.55vmin solid rgba(214, 255, 255, 0.52);
+  box-shadow: 0 0 1.2vmin rgba(188, 248, 255, 0.32);
+  transform: translate(-50%, -50%) scale(0.72);
+  opacity: 0.72;
+  transition: transform 0.08s ease-out, opacity 0.08s ease-out, background 0.08s ease-out;
+  will-change: transform, opacity;
+}
+.cue-light.on {
+  background: #ffe886;
+  border-color: #fff;
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1.08);
+  box-shadow: 0 0 4vmin rgba(255, 230, 118, 0.9);
+}
+.cue-light.hit {
+  animation: cue-hit 0.22s ease-out;
+}
+.l1 { left: 20%; top: 62%; }
+.l2 { left: 20%; top: 30%; }
+.l3 { left: 80%; top: 30%; }
+.l4 { left: 50%; top: 3%; width: 9vmin; height: 9vmin; }
 
 /* 上部にたまる星 */
 .stars {
   position: absolute;
-  top: 2vmin;
+  top: max(2vmin, env(safe-area-inset-top));
   left: 0;
   right: 0;
-  min-height: 9vmin;
+  min-height: 10vmin;
   display: flex;
   flex-wrap: wrap;
   align-content: flex-start;
@@ -117,16 +293,19 @@ html, body {
   gap: 0.4vmin;
   padding: 0 4vmin;
   pointer-events: none;
+  z-index: 3;
 }
 .stars .star {
   font-size: 6vmin;
+  filter: drop-shadow(0 0 1vmin rgba(255,232,118,0.72));
   animation: star-pop 0.4s ease-out;
 }
 
-/* エフェクト層（星・紙吹雪） */
+/* エフェクト層（星・泡・魚・花火） */
 .fx {
   position: absolute;
   inset: 0;
+  z-index: 5;
   pointer-events: none;
   overflow: hidden;
 }
@@ -135,29 +314,110 @@ html, body {
   font-size: 7vmin;
   will-change: transform, opacity;
 }
+.fx .fish {
+  position: absolute;
+  font-size: 8vmin;
+  will-change: transform, opacity;
+}
+.fx .firework {
+  position: absolute;
+  width: 2vmin;
+  height: 2vmin;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0 2.5vmin #fff;
+  will-change: transform, opacity;
+}
+.level-sweep {
+  position: absolute;
+  inset: -20%;
+  z-index: 4;
+  pointer-events: none;
+  opacity: 0;
+  background: linear-gradient(110deg, transparent 35%, rgba(255,255,255,0.72) 50%, transparent 65%);
+  transform: translateX(-120%) rotate(0.001deg);
+}
+.level-sweep.show {
+  animation: light-sweep 0.9s ease-out;
+}
 
 /* === アニメーション === */
-@keyframes idle-bounce {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-3vmin); }
+@keyframes bubble-rise {
+  0% { transform: translate3d(0, 10vmin, 0) scale(0.7); opacity: 0; }
+  14% { opacity: 0.72; }
+  70% { opacity: 0.72; }
+  100% { transform: translate3d(2vmin, -112vh, 0) scale(1.15); opacity: 0; }
+}
+@keyframes sway {
+  0%, 100% { transform: rotate(-4deg); }
+  50% { transform: rotate(6deg); }
+}
+@keyframes idle-float {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-3vmin) scale(1.03, 0.98); }
+}
+@keyframes crab-float {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-2.2vmin) scale(1.02, 0.99); }
+}
+@keyframes shadow-float {
+  0%, 100% { transform: scale(1); opacity: 0.35; }
+  50% { transform: scale(0.86); opacity: 0.24; }
 }
 @keyframes pulse {
   0%, 100% { transform: scale(1); }
   50% { transform: scale(1.08); }
 }
-@keyframes hop {
-  0% { transform: translateY(0) scale(1); }
-  40% { transform: translateY(-8vmin) scale(1.05, 0.95); }
+@keyframes beat-squash {
+  0% { transform: translateY(0) scale(1.12, 0.86); }
+  36% { transform: translateY(-6vmin) scale(0.88, 1.18); }
+  72% { transform: translateY(0.7vmin) scale(1.08, 0.92); }
   100% { transform: translateY(0) scale(1); }
 }
+@keyframes shadow-beat {
+  0% { transform: scale(1.24, 0.86); opacity: 0.42; }
+  42% { transform: scale(0.68); opacity: 0.18; }
+  100% { transform: scale(1); opacity: 0.35; }
+}
 @keyframes happy {
-  0% { transform: translateY(0) rotate(0); }
-  25% { transform: translateY(-10vmin) rotate(-8deg) scale(1.1); }
-  60% { transform: translateY(0) rotate(8deg) scale(1.05); }
+  0% { transform: translateY(0) rotate(0) scale(1); }
+  25% { transform: translateY(-11vmin) rotate(-13deg) scale(0.92, 1.18); }
+  55% { transform: translateY(-4vmin) rotate(16deg) scale(1.12, 0.92); }
+  82% { transform: translateY(0) rotate(-5deg) scale(1.04); }
   100% { transform: translateY(0) rotate(0) scale(1); }
+}
+@keyframes shadow-happy {
+  0% { transform: scale(1); opacity: 0.35; }
+  45% { transform: scale(0.56); opacity: 0.16; }
+  100% { transform: scale(1); opacity: 0.35; }
+}
+@keyframes cue-hit {
+  0% { transform: translate(-50%, -50%) scale(1); }
+  70% { transform: translate(-50%, -50%) scale(1.45); }
+  100% { transform: translate(-50%, -50%) scale(1.08); }
 }
 @keyframes star-pop {
   0% { transform: scale(0); }
   70% { transform: scale(1.3); }
   100% { transform: scale(1); }
+}
+@keyframes light-sweep {
+  0% { opacity: 0; transform: translateX(-120%); }
+  15% { opacity: 1; }
+  100% { opacity: 0; transform: translateX(120%); }
+}
+@keyframes screen-hue {
+  0% { filter: hue-rotate(0deg) brightness(1); }
+  45% { filter: hue-rotate(38deg) brightness(1.16); }
+  100% { filter: hue-rotate(0deg) brightness(1); }
+}
+
+@media (max-height: 520px) {
+  .stage {
+    width: 68vmin;
+    height: 68vmin;
+    transform: translateY(3vmin);
+  }
+  .crab { font-size: 36vmin; }
+  .hint { margin-top: 3vmin; }
 }

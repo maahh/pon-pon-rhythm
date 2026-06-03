@@ -1,5 +1,5 @@
 /* ぽんぽんリズム サービスワーカー（オフライン対応） */
-const CACHE = "pon-pon-v1";
+const CACHE = "pon-pon-v2";
 const ASSETS = [
   "./",
   "./index.html",

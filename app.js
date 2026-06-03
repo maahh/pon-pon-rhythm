@@ -8,6 +8,8 @@ const HIT_WINDOW = 0.18;     // 成功と判定する拍とのズレ（秒）。
 const MILESTONE = 8;         // この回数ごとにお祝い
 const SCHEDULE_AHEAD = 0.12; // 先読みスケジュール時間（秒）
 const LOOKAHEAD_MS = 25;     // スケジューラの起動間隔
+const CUE_LIGHTS = 4;        // 拍を先読みするあわライト
+const COUNT_IN_BEATS = 4;    // スタート前のカウントイン拍数
 
 // C メジャーペンタトニック（外れた音にならないので連打しても気持ちいい）
 const PENTATONIC = [523.25, 587.33, 659.25, 783.99, 880.0, 1046.5];
@@ -44,16 +46,21 @@ let schedulerId = null;
 let scheduledBeats = [];     // {time, bounced} 拍の予定時刻
 let successCount = 0;        // 累計成功数
 let combo = 0;               // 連続成功（メロディを上げる用）
+let isCountingIn = false;    // スタート直後のライト練習中
+let lastBeatFlashAt = -1;    // 拍の瞬間のライトを少し残すための時刻
 
 // === DOM ===
 const startScreen = document.getElementById("start-screen");
 const gameScreen = document.getElementById("game-screen");
 const startBtn = document.getElementById("start-btn");
 const crab = document.getElementById("crab");
+const crabShadow = document.getElementById("crab-shadow");
 const ring = document.getElementById("ring");
 const stage = document.getElementById("stage");
 const starsBox = document.getElementById("stars");
 const fx = document.getElementById("fx");
+const cueLights = Array.from(document.querySelectorAll(".cue-light"));
+const levelSweep = document.getElementById("level-sweep");
 
 // === 音の合成（Web Audio API・ファイル不要） ===
 function tone(freq, start, dur, type = "sine", peak = 0.3) {
@@ -157,10 +164,14 @@ function success() {
   combo++;
   playSuccess();
   crab.classList.remove("happy");
+  crabShadow.classList.remove("happy");
   void crab.offsetWidth; // アニメ再起動
   crab.classList.add("happy");
+  crabShadow.classList.add("happy");
   addStar();
-  burst("⭐");
+  burst("⭐", 5);
+  burst("🐠", 2);
+  burst("🫧", 3);
   if (successCount % MILESTONE === 0) {
     celebrate();
     speedUp();
@@ -170,10 +181,34 @@ function success() {
 function miss() {
   combo = 0;
   playSoft();
-  burst("💧", 1);
+  burst("💧", 2, 0.55);
 }
 
 // === 演出 ===
+function setCueLights(count, isHit = false) {
+  cueLights.forEach((light, index) => {
+    const on = index < count;
+    light.classList.toggle("on", on);
+    if (isHit && on) {
+      light.classList.remove("hit");
+      void light.offsetWidth;
+      light.classList.add("hit");
+    }
+  });
+}
+
+function triggerBeatVisual(lightCount = CUE_LIGHTS) {
+  crab.classList.remove("bounce");
+  crabShadow.classList.remove("bounce");
+  void crab.offsetWidth;
+  crab.classList.add("bounce");
+  crabShadow.classList.add("bounce");
+  ring.classList.add("flash");
+  lastBeatFlashAt = audioCtx.currentTime;
+  setCueLights(lightCount, true);
+  setTimeout(() => ring.classList.remove("flash"), 90);
+}
+
 function addStar() {
   const s = document.createElement("span");
   s.className = "star";
@@ -184,7 +219,7 @@ function addStar() {
 }
 
 // 星や水しぶきを飛ばす
-function burst(emoji, count = 6) {
+function burst(emoji, count = 6, power = 1) {
   const rect = stage.getBoundingClientRect();
   const cx = rect.left + rect.width / 2;
   const cy = rect.top + rect.height / 2;
@@ -196,9 +231,9 @@ function burst(emoji, count = 6) {
     el.style.top = cy + "px";
     fx.appendChild(el);
     const ang = Math.random() * Math.PI * 2;
-    const dist = 80 + Math.random() * 140;
+    const dist = (80 + Math.random() * 140) * power;
     const dx = Math.cos(ang) * dist;
-    const dy = Math.sin(ang) * dist - 60;
+    const dy = Math.sin(ang) * dist - 60 * power;
     el.animate(
       [
         { transform: "translate(-50%,-50%) scale(0.4)", opacity: 1 },
@@ -209,10 +244,64 @@ function burst(emoji, count = 6) {
   }
 }
 
-// お祝い（紙吹雪）
+function fishParade() {
+  for (let i = 0; i < 5; i++) {
+    const el = document.createElement("span");
+    el.className = "fish";
+    el.textContent = i % 2 === 0 ? "🐠" : "🐟";
+    el.style.left = "-12vmin";
+    el.style.top = 18 + Math.random() * 54 + "%";
+    fx.appendChild(el);
+    el.animate(
+      [
+        { transform: "translateX(0) scale(0.7)", opacity: 0 },
+        { transform: `translateX(${35 + i * 6}vw) translateY(-3vmin) scale(1)`, opacity: 1 },
+        { transform: "translateX(118vw) translateY(3vmin) scale(0.86)", opacity: 0 },
+      ],
+      { duration: 1700 + i * 140, delay: i * 80, easing: "cubic-bezier(.18,.72,.28,1)" }
+    ).onfinish = () => el.remove();
+  }
+}
+
+function fireworks() {
+  const colors = ["#fff2a8", "#ff8fa3", "#73f5ff", "#a8ffcb"];
+  for (let burstIndex = 0; burstIndex < 4; burstIndex++) {
+    const cx = 20 + Math.random() * 60;
+    const cy = 18 + Math.random() * 32;
+    for (let i = 0; i < 12; i++) {
+      const el = document.createElement("span");
+      el.className = "firework";
+      el.style.left = cx + "%";
+      el.style.top = cy + "%";
+      el.style.background = colors[(i + burstIndex) % colors.length];
+      fx.appendChild(el);
+      const ang = (Math.PI * 2 * i) / 12;
+      const dist = 52 + Math.random() * 42;
+      const dx = Math.cos(ang) * dist;
+      const dy = Math.sin(ang) * dist;
+      el.animate(
+        [
+          { transform: "translate(-50%,-50%) scale(0.2)", opacity: 1 },
+          { transform: `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px)) scale(1)`, opacity: 0 },
+        ],
+        { duration: 780, delay: burstIndex * 130, easing: "cubic-bezier(.16,.78,.28,1)" }
+      ).onfinish = () => el.remove();
+    }
+  }
+}
+
+// お祝い（光・魚・花火）
 function celebrate() {
   playFanfare();
-  const emojis = ["🎉", "✨", "🌟", "🎈", "🦀"];
+  document.body.classList.remove("level-shift");
+  levelSweep.classList.remove("show");
+  void levelSweep.offsetWidth;
+  document.body.classList.add("level-shift");
+  levelSweep.classList.add("show");
+  setTimeout(() => document.body.classList.remove("level-shift"), 1500);
+  fishParade();
+  fireworks();
+  const emojis = ["✨", "🌟", "🫧", "🐠", "🦀"];
   for (let i = 0; i < 24; i++) {
     const el = document.createElement("span");
     el.className = "burst";
@@ -251,11 +340,7 @@ function render() {
     // まだ跳ねていない過ぎた拍 → 今が拍。跳ねる
     if (!b.bounced) {
       b.bounced = true;
-      crab.classList.remove("bounce");
-      void crab.offsetWidth;
-      crab.classList.add("bounce");
-      ring.classList.add("flash");
-      setTimeout(() => ring.classList.remove("flash"), 90);
+      triggerBeatVisual();
     }
   }
   // リングが拍に向かって縮む（予告）
@@ -263,15 +348,44 @@ function render() {
     const timeToNext = next.time - now;
     const frac = Math.max(0, Math.min(1, timeToNext / secondsPerBeat));
     const scale = 1 + 1.4 * frac;
+    const cueCount = Math.min(CUE_LIGHTS - 1, Math.floor((1 - frac) * CUE_LIGHTS));
     ring.style.transform = `scale(${scale})`;
     ring.style.opacity = (0.4 + 0.5 * (1 - frac)).toFixed(2);
+    if (now - lastBeatFlashAt > 0.13) setCueLights(cueCount);
   }
   requestAnimationFrame(render);
 }
 
+function startCountIn(firstBeatTime) {
+  isCountingIn = true;
+  setCueLights(0);
+  ring.style.transform = "scale(2.4)";
+  ring.style.opacity = "0.45";
+
+  for (let i = 0; i < COUNT_IN_BEATS; i++) {
+    const beatTime = firstBeatTime + i * secondsPerBeat;
+    playBeat(beatTime);
+    setTimeout(() => {
+      triggerBeatVisual(i + 1);
+    }, Math.max(0, (beatTime - audioCtx.currentTime) * 1000));
+  }
+
+  const playTime = firstBeatTime + COUNT_IN_BEATS * secondsPerBeat;
+  setTimeout(() => {
+    isCountingIn = false;
+    isPlaying = true;
+    scheduledBeats = [];
+    nextNoteTime = playTime;
+    musicTime = nextNoteTime;
+    schedulerId = setInterval(scheduler, LOOKAHEAD_MS);
+    scheduler();
+    requestAnimationFrame(render);
+  }, Math.max(0, (playTime - audioCtx.currentTime) * 1000));
+}
+
 // === 開始 ===
 function startGame() {
-  if (isPlaying) return;
+  if (isPlaying || isCountingIn) return;
   audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   masterGain = audioCtx.createGain();
   masterGain.gain.value = 0.6;
@@ -282,21 +396,24 @@ function startGame() {
   // iOS対策：ユーザー操作の中でresume
   if (audioCtx.state === "suspended") audioCtx.resume();
 
-  isPlaying = true;
+  isPlaying = false;
   bpm = BPM_START;
   secondsPerBeat = 60 / bpm;
   successCount = 0;
   combo = 0;
+  lastBeatFlashAt = -1;
   scheduledBeats = [];
-  nextNoteTime = audioCtx.currentTime + 0.2;
+  nextNoteTime = 0;
   musicIndex = 0;
-  musicTime = nextNoteTime;
+  musicTime = 0;
+  starsBox.textContent = "";
+  fx.textContent = "";
+  setCueLights(0);
 
   startScreen.classList.add("hidden");
   gameScreen.classList.remove("hidden");
 
-  schedulerId = setInterval(scheduler, LOOKAHEAD_MS);
-  requestAnimationFrame(render);
+  startCountIn(audioCtx.currentTime + 0.2);
 }
 
 // === イベント ===
