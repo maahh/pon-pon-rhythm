@@ -1,0 +1,15 @@
+# OS
+.DS_Store
+
+# エディタ
+.vscode/
+.idea/
+
+# Python（アイコン生成スクリプト用）
+__pycache__/
+*.pyc
+.venv/
+
+# ログ・一時ファイル
+*.log
+tmp/
